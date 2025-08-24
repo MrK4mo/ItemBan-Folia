@@ -34,7 +34,7 @@ public class MessageUtils {
         }
 
         String message = plugin.getConfigManager().getMessage(messageKey);
-        if (message == null || message.isEmpty()) {
+        if (message == null || message.isEmpty() || message.startsWith("Message not found:")) {
             return;
         }
 
@@ -53,20 +53,23 @@ public class MessageUtils {
             message = prefix + " " + message;
         }
 
-        // Send the message using Adventure API
-        Component component = formatMessageToComponent(message);
-        sender.sendMessage(component);
+        // Convert to legacy string format instead of Component
+        String formattedMessage = formatMessage(message);
+
+        // Use legacy sendMessage method with String
+        sender.sendMessage(formattedMessage);
     }
 
     public String formatMessage(String message) {
         if (plugin.getConfigManager().useMinimessage()) {
-            // Use MiniMessage for proper formatting
+            // First handle MiniMessage format properly
             try {
-                Component component = miniMessage.deserialize(message);
+                // Convert legacy codes to MiniMessage format for compatibility
+                String miniMessageText = convertLegacyToMiniMessage(message);
+                Component component = miniMessage.deserialize(miniMessageText);
                 return legacySerializer.serialize(component);
             } catch (Exception e) {
                 // Fallback to legacy if MiniMessage fails
-                plugin.getLogger().warning("Failed to parse MiniMessage: " + message + " - " + e.getMessage());
                 return formatLegacyMessage(message);
             }
         } else {
@@ -81,7 +84,6 @@ public class MessageUtils {
                 message = convertLegacyToMiniMessage(message);
                 return miniMessage.deserialize(message);
             } catch (Exception e) {
-                plugin.getLogger().warning("Failed to parse MiniMessage: " + message + " - " + e.getMessage());
                 // Fallback to legacy component
                 return legacySerializer.deserialize(formatLegacyMessage(message));
             }
@@ -98,34 +100,44 @@ public class MessageUtils {
     }
 
     private String convertLegacyToMiniMessage(String message) {
-        // Convert legacy codes to MiniMessage format
-        message = message.replace("&0", "<black>")
-                .replace("&1", "<dark_blue>")
-                .replace("&2", "<dark_green>")
-                .replace("&3", "<dark_aqua>")
-                .replace("&4", "<dark_red>")
-                .replace("&5", "<dark_purple>")
-                .replace("&6", "<gold>")
-                .replace("&7", "<gray>")
-                .replace("&8", "<dark_gray>")
-                .replace("&9", "<blue>")
-                .replace("&a", "<green>")
-                .replace("&b", "<aqua>")
-                .replace("&c", "<red>")
-                .replace("&d", "<light_purple>")
-                .replace("&e", "<yellow>")
-                .replace("&f", "<white>")
-                .replace("&l", "<bold>")
-                .replace("&m", "<strikethrough>")
-                .replace("&n", "<underlined>")
-                .replace("&o", "<italic>")
-                .replace("&r", "<reset>");
+        // First handle hex colors (#fc0000 format)
+        Pattern hexPattern2 = Pattern.compile("<#([A-Fa-f0-9]{6})>");
+        Matcher hexMatcher = hexPattern2.matcher(message);
+        while (hexMatcher.find()) {
+            String hexColor = hexMatcher.group(1);
+            message = message.replace("<#" + hexColor + ">", "<color:#" + hexColor + ">");
+        }
 
-        // Convert hex colors to MiniMessage format
+        // Handle &#RRGGBB format
         Matcher matcher = hexPattern.matcher(message);
         while (matcher.find()) {
             String hexColor = matcher.group(1);
             message = message.replace("&#" + hexColor, "<color:#" + hexColor + ">");
+        }
+
+        // Convert legacy codes to MiniMessage format (only if not already in MiniMessage format)
+        if (!message.contains("<color:") && !message.contains("<red>")) {
+            message = message.replace("&0", "<black>")
+                    .replace("&1", "<dark_blue>")
+                    .replace("&2", "<dark_green>")
+                    .replace("&3", "<dark_aqua>")
+                    .replace("&4", "<dark_red>")
+                    .replace("&5", "<dark_purple>")
+                    .replace("&6", "<gold>")
+                    .replace("&7", "<gray>")
+                    .replace("&8", "<dark_gray>")
+                    .replace("&9", "<blue>")
+                    .replace("&a", "<green>")
+                    .replace("&b", "<aqua>")
+                    .replace("&c", "<red>")
+                    .replace("&d", "<light_purple>")
+                    .replace("&e", "<yellow>")
+                    .replace("&f", "<white>")
+                    .replace("&l", "<bold>")
+                    .replace("&m", "<strikethrough>")
+                    .replace("&n", "<underlined>")
+                    .replace("&o", "<italic>")
+                    .replace("&r", "<reset>");
         }
 
         return message;
@@ -148,7 +160,7 @@ public class MessageUtils {
         // Simple mapping of hex colors to closest ChatColor
         String upperHex = hex.toUpperCase();
 
-        if (upperHex.startsWith("FF") && upperHex.contains("0")) {
+        if (upperHex.startsWith("FC") || upperHex.startsWith("FF")) {
             return ChatColor.RED;
         } else if (upperHex.startsWith("00") && upperHex.contains("FF")) {
             return ChatColor.GREEN;
@@ -166,8 +178,7 @@ public class MessageUtils {
     }
 
     public String formatString(String message) {
-        Component component = formatMessageToComponent(message);
-        return legacySerializer.serialize(component);
+        return formatMessage(message);
     }
 
     public void broadcastMessage(String messageKey, String... replacements) {

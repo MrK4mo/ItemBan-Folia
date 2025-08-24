@@ -249,10 +249,12 @@ public class CombatManager {
                     continue;
                 }
 
+                // Get formatted actionbar message from config without debug spam
                 String actionbarMessage = plugin.getConfigManager().getMessage("combat-actionbar")
                         .replace("{time}", String.valueOf(remaining));
-                // Format the actionbar message directly without MessageUtils dependency
-                String formattedMessage = ChatColor.translateAlternateColorCodes('&', actionbarMessage);
+
+                // Use MessageUtils to format the actionbar properly
+                String formattedMessage = plugin.getMessageUtils().formatMessage(actionbarMessage);
                 player.sendActionBar(formattedMessage);
             }
         };
@@ -378,7 +380,7 @@ public class CombatManager {
     public void cleanup() {
         combatPlayers.clear();
         playersWithActionbar.clear();
-        playersToKillOnRejoin.clear(); // NEW
+        playersToKillOnRejoin.clear();
     }
 
     public void reloadConfig() {

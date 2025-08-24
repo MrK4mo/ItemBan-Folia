@@ -199,7 +199,11 @@ public class ConfigManager {
     }
 
     public String getMessage(String key) {
-        return config.getString("messages." + key, "Message not found: " + key);
+        String message = config.getString("messages." + key);
+        if (message == null) {
+            return "Message not found: " + key;
+        }
+        return message;
     }
 
     // Wand settings
