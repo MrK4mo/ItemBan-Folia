@@ -1,8 +1,10 @@
 package bladesmp.itembanfolia;
 
+import bladesmp.itembanfolia.config.ConfigManager;
 import bladesmp.itembanfolia.listeners.CombatListener;
 import bladesmp.itembanfolia.listeners.InteractListener;
 import bladesmp.itembanfolia.listeners.RegionListener;
+import bladesmp.itembanfolia.listeners.RegionMoveListener;
 import bladesmp.itembanfolia.managers.CombatManager;
 import bladesmp.itembanfolia.managers.RegionManager;
 import bladesmp.itembanfolia.utils.MessageUtils;
@@ -42,6 +44,7 @@ public class ItemBanPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CombatListener(this), this);
         getServer().getPluginManager().registerEvents(new InteractListener(this), this);
         getServer().getPluginManager().registerEvents(new bladesmp.itembanfolia.listeners.BlockListener(this), this);
+        getServer().getPluginManager().registerEvents(new RegionMoveListener(this), this); // NEW: Region move listener
 
         getLogger().info("ItemBan Plugin enabled successfully!");
         getLogger().info("Folia support: " + isFolia());

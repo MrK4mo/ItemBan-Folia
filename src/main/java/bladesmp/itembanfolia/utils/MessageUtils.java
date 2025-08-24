@@ -1,6 +1,9 @@
 package bladesmp.itembanfolia.utils;
 
 import bladesmp.itembanfolia.ItemBanPlugin;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -11,10 +14,14 @@ import java.util.regex.Pattern;
 public class MessageUtils {
 
     private final ItemBanPlugin plugin;
+    private final MiniMessage miniMessage;
+    private final LegacyComponentSerializer legacySerializer;
     private final Pattern hexPattern = Pattern.compile("&#([A-Fa-f0-9]{6})");
 
     public MessageUtils(ItemBanPlugin plugin) {
         this.plugin = plugin;
+        this.miniMessage = MiniMessage.miniMessage();
+        this.legacySerializer = LegacyComponentSerializer.legacyAmpersand();
     }
 
     public void sendMessage(CommandSender sender, String messageKey) {
@@ -46,47 +53,82 @@ public class MessageUtils {
             message = prefix + " " + message;
         }
 
-        String formattedMessage = formatMessage(message);
-        sender.sendMessage(formattedMessage);
+        // Send the message using Adventure API
+        Component component = formatMessageToComponent(message);
+        sender.sendMessage(component);
     }
 
     public String formatMessage(String message) {
+        if (plugin.getConfigManager().useMinimessage()) {
+            // Use MiniMessage for proper formatting
+            try {
+                Component component = miniMessage.deserialize(message);
+                return legacySerializer.serialize(component);
+            } catch (Exception e) {
+                // Fallback to legacy if MiniMessage fails
+                plugin.getLogger().warning("Failed to parse MiniMessage: " + message + " - " + e.getMessage());
+                return formatLegacyMessage(message);
+            }
+        } else {
+            return formatLegacyMessage(message);
+        }
+    }
+
+    public Component formatMessageToComponent(String message) {
+        if (plugin.getConfigManager().useMinimessage()) {
+            try {
+                // First convert legacy codes to MiniMessage format for compatibility
+                message = convertLegacyToMiniMessage(message);
+                return miniMessage.deserialize(message);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to parse MiniMessage: " + message + " - " + e.getMessage());
+                // Fallback to legacy component
+                return legacySerializer.deserialize(formatLegacyMessage(message));
+            }
+        } else {
+            return legacySerializer.deserialize(formatLegacyMessage(message));
+        }
+    }
+
+    private String formatLegacyMessage(String message) {
         // Handle hex colors first
         message = translateHexColors(message);
-
-        // Convert MiniMessage format to legacy if present
-        if (plugin.getConfigManager().useMinimessage()) {
-            message = convertMiniMessageToLegacy(message);
-        }
-
         // Translate legacy color codes
         return ChatColor.translateAlternateColorCodes('&', message);
     }
 
-    private String convertMiniMessageToLegacy(String message) {
-        // Convert common MiniMessage tags to legacy codes
-        return message.replace("<black>", "&0")
-                .replace("<dark_blue>", "&1")
-                .replace("<dark_green>", "&2")
-                .replace("<dark_aqua>", "&3")
-                .replace("<dark_red>", "&4")
-                .replace("<dark_purple>", "&5")
-                .replace("<gold>", "&6")
-                .replace("<gray>", "&7")
-                .replace("<dark_gray>", "&8")
-                .replace("<blue>", "&9")
-                .replace("<green>", "&a")
-                .replace("<aqua>", "&b")
-                .replace("<red>", "&c")
-                .replace("<light_purple>", "&d")
-                .replace("<yellow>", "&e")
-                .replace("<white>", "&f")
-                .replace("<bold>", "&l")
-                .replace("<strikethrough>", "&m")
-                .replace("<underlined>", "&n")
-                .replace("<italic>", "&o")
-                .replace("<reset>", "&r")
-                .replaceAll("<color:#([A-Fa-f0-9]{6})>", "&#$1");
+    private String convertLegacyToMiniMessage(String message) {
+        // Convert legacy codes to MiniMessage format
+        message = message.replace("&0", "<black>")
+                .replace("&1", "<dark_blue>")
+                .replace("&2", "<dark_green>")
+                .replace("&3", "<dark_aqua>")
+                .replace("&4", "<dark_red>")
+                .replace("&5", "<dark_purple>")
+                .replace("&6", "<gold>")
+                .replace("&7", "<gray>")
+                .replace("&8", "<dark_gray>")
+                .replace("&9", "<blue>")
+                .replace("&a", "<green>")
+                .replace("&b", "<aqua>")
+                .replace("&c", "<red>")
+                .replace("&d", "<light_purple>")
+                .replace("&e", "<yellow>")
+                .replace("&f", "<white>")
+                .replace("&l", "<bold>")
+                .replace("&m", "<strikethrough>")
+                .replace("&n", "<underlined>")
+                .replace("&o", "<italic>")
+                .replace("&r", "<reset>");
+
+        // Convert hex colors to MiniMessage format
+        Matcher matcher = hexPattern.matcher(message);
+        while (matcher.find()) {
+            String hexColor = matcher.group(1);
+            message = message.replace("&#" + hexColor, "<color:#" + hexColor + ">");
+        }
+
+        return message;
     }
 
     private String translateHexColors(String message) {
@@ -124,7 +166,8 @@ public class MessageUtils {
     }
 
     public String formatString(String message) {
-        return ChatColor.stripColor(formatMessage(message));
+        Component component = formatMessageToComponent(message);
+        return legacySerializer.serialize(component);
     }
 
     public void broadcastMessage(String messageKey, String... replacements) {

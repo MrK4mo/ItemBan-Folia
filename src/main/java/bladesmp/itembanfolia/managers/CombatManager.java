@@ -1,8 +1,11 @@
 package bladesmp.itembanfolia.managers;
 
 import bladesmp.itembanfolia.ItemBanPlugin;
+import bladesmp.itembanfolia.models.ItemBanRegion;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,12 +16,14 @@ public class CombatManager {
     private final Map<UUID, Long> combatPlayers;
     private final Set<Material> bannedItemsInCombat;
     private final Set<UUID> playersWithActionbar;
+    private final Set<UUID> playersToKillOnRejoin; // NEW: Track players who should die on rejoin
 
     public CombatManager(ItemBanPlugin plugin) {
         this.plugin = plugin;
         this.combatPlayers = new ConcurrentHashMap<>();
         this.bannedItemsInCombat = new HashSet<>();
         this.playersWithActionbar = ConcurrentHashMap.newKeySet();
+        this.playersToKillOnRejoin = ConcurrentHashMap.newKeySet(); // NEW
 
         // Load banned items after construction
         loadBannedItems();
@@ -72,8 +77,8 @@ public class CombatManager {
         boolean wasInCombat = combatPlayers.containsKey(playerId);
         combatPlayers.put(playerId, combatEndTime);
 
-        // Add to actionbar tracking
-        if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar()) {
+        // Add to actionbar tracking (use separate actionbar control)
+        if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar() && plugin.getConfigManager().isActionbarEnabled()) {
             playersWithActionbar.add(playerId);
         }
 
@@ -91,7 +96,7 @@ public class CombatManager {
         if (combatPlayers.remove(playerId) != null && plugin.getMessageUtils() != null) {
             plugin.getMessageUtils().sendMessage(player, "combat-end");
             // Clear actionbar
-            if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar()) {
+            if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar() && plugin.getConfigManager().isActionbarEnabled()) {
                 player.sendActionBar("");
             }
         }
@@ -111,7 +116,7 @@ public class CombatManager {
             if (plugin.getMessageUtils() != null) {
                 plugin.getMessageUtils().sendMessage(player, "combat-end");
                 // Clear actionbar
-                if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar()) {
+                if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar() && plugin.getConfigManager().isActionbarEnabled()) {
                     player.sendActionBar("");
                 }
             }
@@ -121,21 +126,76 @@ public class CombatManager {
         return true;
     }
 
+    // NEW: Check if player can leave region during combat
+    public boolean canPlayerLeaveRegion(Player player) {
+        if (!isPlayerInCombat(player)) {
+            return true; // Not in combat, can leave
+        }
+
+        if (plugin.getConfigManager() == null || !plugin.getConfigManager().isCombatRegionLockEnabled()) {
+            return true; // Region lock disabled
+        }
+
+        // Check if player is in a locked region
+        List<ItemBanRegion> regionsAt = plugin.getRegionManager().getRegionsAt(player.getLocation());
+        List<String> lockedRegions = plugin.getConfigManager().getCombatLockedRegions();
+
+        for (ItemBanRegion region : regionsAt) {
+            if (lockedRegions.contains(region.getName())) {
+                return false; // Player is in a locked region and in combat
+            }
+        }
+
+        return true; // Not in a locked region
+    }
+
     public void handlePlayerLogout(Player player) {
         UUID playerId = player.getUniqueId();
 
         if (combatPlayers.containsKey(playerId)) {
-            if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldKillOnLogout()) {
-                // Kill player for combat logging
+            // NEW: Check if player is in a locked region
+            boolean inLockedRegion = false;
+            if (plugin.getConfigManager() != null && plugin.getConfigManager().isCombatRegionLockEnabled()) {
+                List<ItemBanRegion> regionsAt = plugin.getRegionManager().getRegionsAt(player.getLocation());
+                List<String> lockedRegions = plugin.getConfigManager().getCombatLockedRegions();
+
+                for (ItemBanRegion region : regionsAt) {
+                    if (lockedRegions.contains(region.getName())) {
+                        inLockedRegion = true;
+                        break;
+                    }
+                }
+            }
+
+            // Handle combat logging based on region lock status
+            if (!inLockedRegion && plugin.getConfigManager() != null && plugin.getConfigManager().shouldKillOnLogout()) {
+                // Broadcast message about combat logging
                 if (plugin.getMessageUtils() != null) {
                     plugin.getMessageUtils().broadcastMessage("combat-logout-death",
                             "player", player.getName());
                 }
 
-                // Drop inventory and kill player
-                player.getWorld().dropItemNaturally(player.getLocation(), player.getInventory().getContents());
+                // Drop inventory contents immediately
+                ItemStack[] inventoryContents = player.getInventory().getContents();
+                for (ItemStack item : inventoryContents) {
+                    if (item != null && item.getType() != Material.AIR) {
+                        player.getWorld().dropItemNaturally(player.getLocation(), item);
+                    }
+                }
+
+                // Drop armor contents
+                ItemStack[] armorContents = player.getInventory().getArmorContents();
+                for (ItemStack item : armorContents) {
+                    if (item != null && item.getType() != Material.AIR) {
+                        player.getWorld().dropItemNaturally(player.getLocation(), item);
+                    }
+                }
+
+                // Clear inventory immediately
                 player.getInventory().clear();
-                player.setHealth(0.0);
+
+                // Mark player for death on rejoin
+                playersToKillOnRejoin.add(playerId);
             }
 
             // Remove from combat
@@ -144,8 +204,22 @@ public class CombatManager {
         }
     }
 
+    // NEW: Handle player rejoining after combat logging
+    public void handlePlayerRejoin(Player player) {
+        UUID playerId = player.getUniqueId();
+
+        if (playersToKillOnRejoin.contains(playerId)) {
+            // Kill the player
+            player.setHealth(0.0);
+            playersToKillOnRejoin.remove(playerId);
+
+            plugin.getLogger().info("Player " + player.getName() + " died due to combat logging");
+        }
+    }
+
     private void startActionbarTask() {
-        if (plugin.getConfigManager() == null || !plugin.getConfigManager().shouldShowActionbar()) {
+        // Use separate actionbar control instead of general messages control
+        if (plugin.getConfigManager() == null || !plugin.getConfigManager().shouldShowActionbar() || !plugin.getConfigManager().isActionbarEnabled()) {
             return;
         }
 
@@ -177,7 +251,8 @@ public class CombatManager {
 
                 String actionbarMessage = plugin.getConfigManager().getMessage("combat-actionbar")
                         .replace("{time}", String.valueOf(remaining));
-                String formattedMessage = plugin.getMessageUtils().formatMessage(actionbarMessage);
+                // Format the actionbar message directly without MessageUtils dependency
+                String formattedMessage = ChatColor.translateAlternateColorCodes('&', actionbarMessage);
                 player.sendActionBar(formattedMessage);
             }
         };
@@ -268,13 +343,13 @@ public class CombatManager {
                         if (plugin.isFolia()) {
                             plugin.scheduleEntityTask(player, () -> {
                                 plugin.getMessageUtils().sendMessage(player, "combat-end");
-                                if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar()) {
+                                if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar() && plugin.getConfigManager().isActionbarEnabled()) {
                                     player.sendActionBar("");
                                 }
                             });
                         } else {
                             plugin.getMessageUtils().sendMessage(player, "combat-end");
-                            if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar()) {
+                            if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar() && plugin.getConfigManager().isActionbarEnabled()) {
                                 player.sendActionBar("");
                             }
                         }
@@ -303,6 +378,7 @@ public class CombatManager {
     public void cleanup() {
         combatPlayers.clear();
         playersWithActionbar.clear();
+        playersToKillOnRejoin.clear(); // NEW
     }
 
     public void reloadConfig() {

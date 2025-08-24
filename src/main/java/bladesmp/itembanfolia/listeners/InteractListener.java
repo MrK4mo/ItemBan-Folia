@@ -89,6 +89,32 @@ public class InteractListener implements Listener {
                 }
             }
         }
+
+        // NEW: Check for sword usage (left-click air/block for swinging)
+        if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) {
+            if (isSword(material)) {
+                // World restrictions for swords
+                if (plugin.getWorldBanManager().isItemBannedInWorld(player.getWorld(), material)) {
+                    event.setCancelled(true);
+                    plugin.getMessageUtils().sendMessage(player, "item-banned-world");
+                    return;
+                }
+
+                // Combat restrictions for swords
+                if (plugin.getCombatManager().isPlayerInCombat(player) &&
+                        plugin.getCombatManager().isItemBannedInCombat(material)) {
+                    event.setCancelled(true);
+                    plugin.getMessageUtils().sendMessage(player, "item-banned-combat");
+                    return;
+                }
+
+                // Region restrictions for swords
+                if (plugin.getRegionManager().isItemBannedAt(player.getLocation(), material)) {
+                    event.setCancelled(true);
+                    plugin.getMessageUtils().sendMessage(player, "item-banned-region");
+                }
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -121,6 +147,15 @@ public class InteractListener implements Listener {
             event.setCancelled(true);
             plugin.getMessageUtils().sendMessage(player, "item-banned-region");
         }
+    }
+
+    private boolean isSword(Material material) {
+        return material == Material.WOODEN_SWORD ||
+                material == Material.STONE_SWORD ||
+                material == Material.IRON_SWORD ||
+                material == Material.GOLDEN_SWORD ||
+                material == Material.DIAMOND_SWORD ||
+                material == Material.NETHERITE_SWORD;
     }
 
     private boolean isConsumableOrUsable(Material material) {

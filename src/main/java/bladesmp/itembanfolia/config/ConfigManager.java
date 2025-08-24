@@ -32,6 +32,8 @@ public class ConfigManager {
         defaults.put("combat.kill-on-logout", true);
         defaults.put("combat.show-actionbar", true);
         defaults.put("combat.actionbar-update-interval", 10); // ticks
+        defaults.put("combat.region-lock.enabled", false);
+        defaults.put("combat.region-lock.regions", Arrays.asList("spawn", "arena"));
 
         // World bans
         defaults.put("world-bans.enabled", true);
@@ -41,6 +43,7 @@ public class ConfigManager {
         defaults.put("messages.enabled", true);
         defaults.put("messages.use-minimessage", true);
         defaults.put("messages.prefix", "<red>[ItemBan]</red>");
+        defaults.put("messages.actionbar-enabled", true); // NEW: Separate actionbar control
 
         // Message texts
         defaults.put("messages.item-banned-region", "&c&lDieses Item ist in dieser Region nicht erlaubt!");
@@ -57,6 +60,7 @@ public class ConfigManager {
         defaults.put("messages.combat-end", "&aDu bist nicht mehr im Kampf!");
         defaults.put("messages.combat-actionbar", "&cKampf: &f{time}s");
         defaults.put("messages.combat-logout-death", "&c{player} ist während des Kampfes offline gegangen und gestorben!");
+        defaults.put("messages.combat-region-leave-denied", "&cDu kannst diese Region nicht während des Kampfes verlassen!");
 
         // Wand settings
         defaults.put("wand.material", "DIAMOND_AXE");
@@ -134,6 +138,15 @@ public class ConfigManager {
         return config.getInt("combat.actionbar-update-interval", 10);
     }
 
+    // NEW: Combat region lock settings
+    public boolean isCombatRegionLockEnabled() {
+        return config.getBoolean("combat.region-lock.enabled", false);
+    }
+
+    public List<String> getCombatLockedRegions() {
+        return config.getStringList("combat.region-lock.regions");
+    }
+
     // World bans
     public boolean areWorldBansEnabled() {
         return config.getBoolean("world-bans.enabled", true);
@@ -170,6 +183,11 @@ public class ConfigManager {
     // Messages
     public boolean areMessagesEnabled() {
         return config.getBoolean("messages.enabled", true);
+    }
+
+    // NEW: Separate actionbar control
+    public boolean isActionbarEnabled() {
+        return config.getBoolean("messages.actionbar-enabled", true);
     }
 
     public boolean useMinimessage() {

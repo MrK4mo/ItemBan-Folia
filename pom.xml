@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.example</groupId>
-    <artifactId>ItemBan</artifactId>
-    <version>1.0.0</version>
+    <artifactId>ItemBan-BladeSMP</artifactId>
+    <version>1.0</version>
     <packaging>jar</packaging>
 
-    <name>ItemBan</name>
-    <description>A plugin to ban items in specific regions and during combat</description>
+    <name>ItemBan-BladeSMP</name>
+    <description>Sigma ItemBan Plugin for Folia and BladeSMP</description>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

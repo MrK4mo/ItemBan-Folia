@@ -6,6 +6,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 public class CombatListener implements Listener {
@@ -49,12 +50,22 @@ public class CombatListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        // Remove player from combat when they leave
-        plugin.getCombatManager().removePlayerFromCombat(event.getPlayer());
+        Player player = event.getPlayer();
+
+        // Handle combat logout BEFORE removing from combat
+        plugin.getCombatManager().handlePlayerLogout(player);
 
         // Clear their region selection positions
-        plugin.getRegionManager().clearPositions(event.getPlayer());
+        plugin.getRegionManager().clearPositions(player);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+
+        // Check if player was marked for death due to combat logging
+        plugin.getCombatManager().handlePlayerRejoin(player);
     }
 }
