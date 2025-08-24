@@ -1,0 +1,25 @@
+name: ItemBan
+version: '${project.version}'
+main: bladesmp.itembanfolia.ItemBanPlugin
+description: ${project.description}
+api-version: '1.21'
+folia-supported: true
+authors: MrEnte_
+website: https://example.com
+
+permissions:
+  itemban.admin:
+    description: Administrative permissions for ItemBan
+    default: op
+  itemban.bypass:
+    description: Bypass item restrictions
+    default: false
+  itemban.command:
+    description: Use ItemBan commands
+    default: op
+
+commands:
+  itemban:
+    description: ItemBan main command
+    usage: /itemban <wand|reload|help>
+    permission: itemban.command

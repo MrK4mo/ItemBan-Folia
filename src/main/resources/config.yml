@@ -1,0 +1,61 @@
+# ItemBan Plugin Configuration
+# Supported color formats:
+# - Legacy codes: &c, &l, &n, etc.
+# - Hex colors: &#FF0000 (red), &#00FF00 (green), etc.
+# - MiniMessage: <red>, <bold>, <#FF0000>, etc.
+
+# Combat System Configuration
+combat:
+  # Enable/disable combat system
+  enabled: true
+
+  # Combat duration in seconds
+  duration: 15
+
+  # Items banned during combat
+  banned-items:
+    - "ENDER_PEARL"
+    - "CHORUS_FRUIT"
+    - "GOLDEN_APPLE"
+    - "ENCHANTED_GOLDEN_APPLE"
+    - "TOTEM_OF_UNDYING"
+
+# Message Configuration
+messages:
+  # Enable/disable all plugin messages
+  enabled: true
+
+  # Use MiniMessage format (modern) or legacy format
+  use-minimessage: true
+
+  # Message prefix
+  prefix: "<red>[ItemBan]</red>"
+
+  # Message texts
+  item-banned-region: "&c&lDieses Item ist in dieser Region nicht erlaubt!"
+  item-banned-combat: "&c&lDieses Item ist während des Kampfes nicht erlaubt!"
+  wand-received: "&aRegions-Wand erhalten! Linksklick und Rechtsklick zum Markieren."
+  region-created: "&aRegion '&f{name}&a' erfolgreich erstellt!"
+  region-deleted: "&aRegion '&f{name}&a' wurde gelöscht!"
+  pos1-set: "&aPosition 1 gesetzt: &f{x}, {y}, {z}"
+  pos2-set: "&aPosition 2 gesetzt: &f{x}, {y}, {z}"
+  no-permission: "&cDu hast keine Berechtigung für diesen Befehl!"
+  config-reloaded: "&aKonfiguration erfolgreich neu geladen!"
+  in-combat: "&cDu bist jetzt im Kampf für {duration} Sekunden!"
+  combat-end: "&aDu bist nicht mehr im Kampf!"
+
+# Wand Configuration
+wand:
+  # Material for the region selection wand
+  material: "DIAMOND_AXE"
+
+  # Display name of the wand
+  name: "&6&lRegions-Wand"
+
+  # Lore of the wand
+  lore:
+    - "&7Linksklick: Position 1 setzen"
+    - "&7Rechtsklick: Position 2 setzen"
+    - "&7Verwende &f/itemban create <name>&7 um eine Region zu erstellen"
+    - ""
+    - "&8ItemBan Plugin by YourName"
