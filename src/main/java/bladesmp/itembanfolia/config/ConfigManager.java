@@ -31,44 +31,50 @@ public class ConfigManager {
         defaults.put("combat.banned-items", Arrays.asList("ENDER_PEARL", "CHORUS_FRUIT", "GOLDEN_APPLE"));
         defaults.put("combat.kill-on-logout", true);
         defaults.put("combat.show-actionbar", true);
-        defaults.put("combat.actionbar-update-interval", 10); // ticks
+        defaults.put("combat.actionbar-update-interval", 10);
         defaults.put("combat.region-lock.enabled", false);
         defaults.put("combat.region-lock.regions", Arrays.asList("spawn", "arena"));
+
+        // Ender Pearl cooldown settings
+        defaults.put("ender-pearl.enabled", true);
+        defaults.put("ender-pearl.cooldown", 5);
+        defaults.put("ender-pearl.show-cooldown-message", true);
+        defaults.put("ender-pearl.global-cooldown", true);
 
         // World bans
         defaults.put("world-bans.enabled", true);
         defaults.put("world-bans.worlds.spawn", Arrays.asList("ENDER_CRYSTAL", "TNT", "RESPAWN_ANCHOR"));
 
-        // Messages
+        // Messages - Nur MiniMessage
         defaults.put("messages.enabled", true);
-        defaults.put("messages.use-minimessage", true);
-        defaults.put("messages.prefix", "<red>[ItemBan]</red>");
-        defaults.put("messages.actionbar-enabled", true); // NEW: Separate actionbar control
+        defaults.put("messages.actionbar-enabled", true);
+        defaults.put("messages.prefix", "<color:#ff00b1><bold>ITEMBAN</bold></color> <gray>»</gray>");
 
-        // Message texts
-        defaults.put("messages.item-banned-region", "&c&lDieses Item ist in dieser Region nicht erlaubt!");
-        defaults.put("messages.item-banned-combat", "&c&lDieses Item ist während des Kampfes nicht erlaubt!");
-        defaults.put("messages.item-banned-world", "&c&lDieses Item ist in dieser Welt nicht erlaubt!");
-        defaults.put("messages.wand-received", "&aRegions-Wand erhalten! Linksklick und Rechtsklick zum Markieren.");
-        defaults.put("messages.region-created", "&aRegion '&f{name}&a' erfolgreich erstellt!");
-        defaults.put("messages.region-deleted", "&aRegion '&f{name}&a' wurde gelöscht!");
-        defaults.put("messages.pos1-set", "&aPosition 1 gesetzt: &f{x}, {y}, {z}");
-        defaults.put("messages.pos2-set", "&aPosition 2 gesetzt: &f{x}, {y}, {z}");
-        defaults.put("messages.no-permission", "&cDu hast keine Berechtigung für diesen Befehl!");
-        defaults.put("messages.config-reloaded", "&aKonfiguration erfolgreich neu geladen!");
-        defaults.put("messages.in-combat", "&cDu bist jetzt im Kampf für {duration} Sekunden!");
-        defaults.put("messages.combat-end", "&aDu bist nicht mehr im Kampf!");
-        defaults.put("messages.combat-actionbar", "&cKampf: &f{time}s");
-        defaults.put("messages.combat-logout-death", "&c{player} ist während des Kampfes offline gegangen und gestorben!");
-        defaults.put("messages.combat-region-leave-denied", "&cDu kannst diese Region nicht während des Kampfes verlassen!");
+        // Message texts - Nur MiniMessage Format
+        defaults.put("messages.item-banned-region", "<red><bold>Dieses Item ist in dieser Region nicht erlaubt!");
+        defaults.put("messages.item-banned-combat", "<red><bold>Dieses Item ist während des Kampfes nicht erlaubt!");
+        defaults.put("messages.item-banned-world", "<red><bold>Dieses Item ist in dieser Welt nicht erlaubt!");
+        defaults.put("messages.wand-received", "<green>Regions-Wand erhalten! Linksklick und Rechtsklick zum Markieren.");
+        defaults.put("messages.region-created", "<green>Region '<white>{name}</white>' erfolgreich erstellt!");
+        defaults.put("messages.region-deleted", "<green>Region '<white>{name}</white>' wurde gelöscht!");
+        defaults.put("messages.pos1-set", "<green>Position 1 gesetzt: <white>{x}, {y}, {z}</white>");
+        defaults.put("messages.pos2-set", "<green>Position 2 gesetzt: <white>{x}, {y}, {z}</white>");
+        defaults.put("messages.no-permission", "<red>Du hast keine Berechtigung für diesen Befehl!");
+        defaults.put("messages.config-reloaded", "<green>Konfiguration erfolgreich neu geladen!");
+        defaults.put("messages.in-combat", "<red>Du bist jetzt im Kampf für {duration} Sekunden!");
+        defaults.put("messages.combat-end", "<green>Du bist nicht mehr im Kampf!");
+        defaults.put("messages.combat-actionbar", "<color:#fc0000><underlined>COMBAT:</underlined> <white>{time}s</white>");
+        defaults.put("messages.combat-logout-death", "<red>{player} ist während des Kampfes offline gegangen und gestorben!");
+        defaults.put("messages.combat-region-leave-denied", "<red>Du kannst diese Region nicht während des Kampfes verlassen!");
+        defaults.put("messages.ender-pearl-cooldown", "<red><bold>Ender Pearl ist noch für <yellow>{time}</yellow> Sekunden im Cooldown!");
 
         // Wand settings
         defaults.put("wand.material", "DIAMOND_AXE");
-        defaults.put("wand.name", "&6&lRegions-Wand");
+        defaults.put("wand.name", "<gold><bold>Regions-Wand</bold></gold>");
         defaults.put("wand.lore", Arrays.asList(
-                "&7Linksklick: Position 1 setzen",
-                "&7Rechtsklick: Position 2 setzen",
-                "&7Verwende &f/itemban create <name>&7 um eine Region zu erstellen"
+                "<gray>Linksklick: Position 1 setzen</gray>",
+                "<gray>Rechtsklick: Position 2 setzen</gray>",
+                "<gray>Verwende <white>/itemban create <name></white> um eine Region zu erstellen</gray>"
         ));
     }
 
@@ -138,13 +144,29 @@ public class ConfigManager {
         return config.getInt("combat.actionbar-update-interval", 10);
     }
 
-    // NEW: Combat region lock settings
     public boolean isCombatRegionLockEnabled() {
         return config.getBoolean("combat.region-lock.enabled", false);
     }
 
     public List<String> getCombatLockedRegions() {
         return config.getStringList("combat.region-lock.regions");
+    }
+
+    // Ender Pearl cooldown settings
+    public boolean isEnderPearlCooldownEnabled() {
+        return config.getBoolean("ender-pearl.enabled", true);
+    }
+
+    public int getEnderPearlCooldown() {
+        return config.getInt("ender-pearl.cooldown", 5);
+    }
+
+    public boolean shouldShowEnderPearlCooldownMessage() {
+        return config.getBoolean("ender-pearl.show-cooldown-message", true);
+    }
+
+    public boolean isEnderPearlGlobalCooldown() {
+        return config.getBoolean("ender-pearl.global-cooldown", true);
     }
 
     // World bans
@@ -185,17 +207,17 @@ public class ConfigManager {
         return config.getBoolean("messages.enabled", true);
     }
 
-    // NEW: Separate actionbar control
     public boolean isActionbarEnabled() {
         return config.getBoolean("messages.actionbar-enabled", true);
     }
 
+    // Entfernt: use-minimessage - wir verwenden nur noch MiniMessage
     public boolean useMinimessage() {
-        return config.getBoolean("messages.use-minimessage", true);
+        return true; // Immer true
     }
 
     public String getPrefix() {
-        return config.getString("messages.prefix", "<red>[ItemBan]</red>");
+        return config.getString("messages.prefix", "<color:#ff00b1><bold>ITEMBAN</bold></color> <gray>»</gray>");
     }
 
     public String getMessage(String key) {
@@ -217,7 +239,7 @@ public class ConfigManager {
     }
 
     public String getWandName() {
-        return config.getString("wand.name", "&6&lRegions-Wand");
+        return config.getString("wand.name", "<gold><bold>Regions-Wand</bold></gold>");
     }
 
     public List<String> getWandLore() {

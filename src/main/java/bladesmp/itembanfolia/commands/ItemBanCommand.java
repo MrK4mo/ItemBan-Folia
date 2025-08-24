@@ -241,10 +241,43 @@ public class ItemBanCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleReloadCommand(CommandSender sender) {
-        plugin.getConfigManager().loadConfig();
-        plugin.getRegionManager().loadRegions();
-        plugin.getCombatManager().reloadConfig();
-        plugin.getMessageUtils().sendMessage(sender, "config-reloaded");
+        try {
+            // Safe reload with null checks and error handling
+            plugin.getLogger().info("Starting configuration reload...");
+
+            if (plugin.getConfigManager() != null) {
+                plugin.getConfigManager().loadConfig();
+                plugin.getLogger().info("Config manager reloaded");
+            }
+
+            if (plugin.getRegionManager() != null) {
+                plugin.getRegionManager().loadRegions();
+                plugin.getLogger().info("Region manager reloaded");
+            }
+
+            if (plugin.getCombatManager() != null) {
+                plugin.getCombatManager().reloadConfig();
+                plugin.getLogger().info("Combat manager reloaded");
+            }
+
+            if (plugin.getEnderPearlManager() != null) {
+                plugin.getEnderPearlManager().reloadConfig();
+                plugin.getLogger().info("Ender Pearl manager reloaded");
+            }
+
+            if (plugin.getWorldBanManager() != null) {
+                plugin.getWorldBanManager().reloadConfig();
+                plugin.getLogger().info("World ban manager reloaded");
+            }
+
+            plugin.getMessageUtils().sendMessage(sender, "config-reloaded");
+            plugin.getLogger().info("Plugin configuration successfully reloaded");
+
+        } catch (Exception e) {
+            plugin.getLogger().severe("Error during reload: " + e.getMessage());
+            e.printStackTrace();
+            sender.sendMessage("§cError during reload: " + e.getMessage());
+        }
         return true;
     }
 

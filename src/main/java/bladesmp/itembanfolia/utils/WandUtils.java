@@ -2,8 +2,8 @@ package bladesmp.itembanfolia.utils;
 
 import bladesmp.itembanfolia.ItemBanPlugin;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
@@ -23,19 +23,43 @@ public class WandUtils {
         ItemMeta meta = wand.getItemMeta();
 
         if (meta != null) {
-            // Set display name using legacy format (compatible)
+            // Set display name using MiniMessage -> Legacy conversion
             String name = plugin.getConfigManager().getWandName();
-            String legacyName = ChatColor.translateAlternateColorCodes('&', name);
-            meta.setDisplayName(legacyName);
+            try {
+                Component nameComponent = MiniMessage.miniMessage().deserialize(name);
+                LegacyComponentSerializer legacySerializer = LegacyComponentSerializer.legacySection();
+                String legacyName = legacySerializer.serialize(nameComponent);
+                meta.setDisplayName(legacyName);
+            } catch (Exception e) {
+                // Fallback to raw name
+                meta.setDisplayName(name);
+            }
 
-            // Set lore using legacy format
+            // Set lore using MiniMessage -> Legacy conversion
             List<String> loreStrings = plugin.getConfigManager().getWandLore();
             List<String> legacyLore = new ArrayList<>();
+
             for (String loreString : loreStrings) {
-                legacyLore.add(ChatColor.translateAlternateColorCodes('&', loreString));
+                try {
+                    Component loreComponent = MiniMessage.miniMessage().deserialize(loreString);
+                    LegacyComponentSerializer legacySerializer = LegacyComponentSerializer.legacySection();
+                    String legacyLoreString = legacySerializer.serialize(loreComponent);
+                    legacyLore.add(legacyLoreString);
+                } catch (Exception e) {
+                    legacyLore.add(loreString);
+                }
             }
+
             // Add hardcoded credit line
-            legacyLore.add(ChatColor.translateAlternateColorCodes('&', "&8ItemBan Plugin by MrEnte_"));
+            try {
+                Component creditComponent = MiniMessage.miniMessage().deserialize("<dark_gray>ItemBan Plugin by MrEnte_</dark_gray>");
+                LegacyComponentSerializer legacySerializer = LegacyComponentSerializer.legacySection();
+                String legacyCredit = legacySerializer.serialize(creditComponent);
+                legacyLore.add(legacyCredit);
+            } catch (Exception e) {
+                legacyLore.add("§8ItemBan Plugin by MrEnte_");
+            }
+
             meta.setLore(legacyLore);
 
             // Set persistent data to identify as wand

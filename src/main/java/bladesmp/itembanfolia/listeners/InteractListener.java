@@ -8,8 +8,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.inventory.ItemStack;
 
 public class InteractListener implements Listener {
@@ -41,6 +43,15 @@ public class InteractListener implements Listener {
 
         Material material = item.getType();
 
+        // Special handling for Ender Pearl cooldown
+        if (material == Material.ENDER_PEARL && (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK)) {
+            if (!plugin.getEnderPearlManager().canUseEnderPearl(player)) {
+                event.setCancelled(true);
+                plugin.getEnderPearlManager().sendCooldownMessage(player);
+                return;
+            }
+        }
+
         // Check world restrictions
         if (plugin.getWorldBanManager().isItemBannedInWorld(player.getWorld(), material)) {
             event.setCancelled(true);
@@ -63,34 +74,19 @@ public class InteractListener implements Listener {
             return;
         }
 
-        // Additional check for right-click actions that might not trigger above
+        // Additional check for right-click actions
         if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             // Check if the item is consumable or has special right-click behavior
             if (isConsumableOrUsable(material)) {
-                // World restrictions
-                if (plugin.getWorldBanManager().isItemBannedInWorld(player.getWorld(), material)) {
-                    event.setCancelled(true);
-                    plugin.getMessageUtils().sendMessage(player, "item-banned-world");
-                    return;
+                // Apply Ender Pearl cooldown after successful use
+                if (material == Material.ENDER_PEARL) {
+                    plugin.getEnderPearlManager().useEnderPearl(player);
                 }
-
-                // Combat restrictions
-                if (plugin.getCombatManager().isPlayerInCombat(player) &&
-                        plugin.getCombatManager().isItemBannedInCombat(material)) {
-                    event.setCancelled(true);
-                    plugin.getMessageUtils().sendMessage(player, "item-banned-combat");
-                    return;
-                }
-
-                // Region restrictions
-                if (plugin.getRegionManager().isItemBannedAt(player.getLocation(), material)) {
-                    event.setCancelled(true);
-                    plugin.getMessageUtils().sendMessage(player, "item-banned-region");
-                }
+                // Other restrictions already checked above
             }
         }
 
-        // NEW: Check for sword usage (left-click air/block for swinging)
+        // Check for sword usage (left-click air/block for swinging)
         if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) {
             if (isSword(material)) {
                 // World restrictions for swords
@@ -113,6 +109,91 @@ public class InteractListener implements Listener {
                     event.setCancelled(true);
                     plugin.getMessageUtils().sendMessage(player, "item-banned-region");
                 }
+            }
+        }
+    }
+
+    // NEW: Handle sword attacks specifically
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player)) {
+            return;
+        }
+
+        Player attacker = (Player) event.getDamager();
+
+        // Skip if player has bypass permission
+        if (attacker.hasPermission("itemban.bypass")) {
+            return;
+        }
+
+        ItemStack weapon = attacker.getInventory().getItemInMainHand();
+        if (weapon == null || weapon.getType() == Material.AIR) {
+            return;
+        }
+
+        Material material = weapon.getType();
+
+        // Check if it's a sword or other weapon
+        if (isSword(material) || isWeapon(material)) {
+            // Check world restrictions
+            if (plugin.getWorldBanManager().isItemBannedInWorld(attacker.getWorld(), material)) {
+                event.setCancelled(true);
+                plugin.getMessageUtils().sendMessage(attacker, "item-banned-world");
+                return;
+            }
+
+            // Check combat restrictions
+            if (plugin.getCombatManager().isPlayerInCombat(attacker) &&
+                    plugin.getCombatManager().isItemBannedInCombat(material)) {
+                event.setCancelled(true);
+                plugin.getMessageUtils().sendMessage(attacker, "item-banned-combat");
+                return;
+            }
+
+            // Check region restrictions
+            if (plugin.getRegionManager().isItemBannedAt(attacker.getLocation(), material)) {
+                event.setCancelled(true);
+                plugin.getMessageUtils().sendMessage(attacker, "item-banned-region");
+            }
+        }
+    }
+
+    // NEW: Handle Elytra flight
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPlayerToggleFlight(PlayerToggleFlightEvent event) {
+        Player player = event.getPlayer();
+
+        // Skip if player has bypass permission
+        if (player.hasPermission("itemban.bypass")) {
+            return;
+        }
+
+        // Only handle elytra flight, not creative flight
+        if (player.isGliding() || (event.isFlying() && player.getInventory().getChestplate() != null &&
+                player.getInventory().getChestplate().getType() == Material.ELYTRA)) {
+
+            Material elytra = Material.ELYTRA;
+
+            // Check world restrictions
+            if (plugin.getWorldBanManager().isItemBannedInWorld(player.getWorld(), elytra)) {
+                event.setCancelled(true);
+                plugin.getMessageUtils().sendMessage(player, "item-banned-world");
+                return;
+            }
+
+            // Check combat restrictions
+            if (plugin.getCombatManager().isPlayerInCombat(player) &&
+                    plugin.getCombatManager().isItemBannedInCombat(elytra)) {
+                event.setCancelled(true);
+                plugin.getMessageUtils().sendMessage(player, "item-banned-combat");
+                return;
+            }
+
+            // Check region restrictions
+            if (plugin.getRegionManager().isItemBannedAt(player.getLocation(), elytra)) {
+                event.setCancelled(true);
+                plugin.getMessageUtils().sendMessage(player, "item-banned-region");
             }
         }
     }
@@ -156,6 +237,19 @@ public class InteractListener implements Listener {
                 material == Material.GOLDEN_SWORD ||
                 material == Material.DIAMOND_SWORD ||
                 material == Material.NETHERITE_SWORD;
+    }
+
+    private boolean isWeapon(Material material) {
+        return isSword(material) ||
+                material == Material.BOW ||
+                material == Material.CROSSBOW ||
+                material == Material.TRIDENT ||
+                material == Material.WOODEN_AXE ||
+                material == Material.STONE_AXE ||
+                material == Material.IRON_AXE ||
+                material == Material.GOLDEN_AXE ||
+                material == Material.DIAMOND_AXE ||
+                material == Material.NETHERITE_AXE;
     }
 
     private boolean isConsumableOrUsable(Material material) {

@@ -6,6 +6,7 @@ import bladesmp.itembanfolia.listeners.InteractListener;
 import bladesmp.itembanfolia.listeners.RegionListener;
 import bladesmp.itembanfolia.listeners.RegionMoveListener;
 import bladesmp.itembanfolia.managers.CombatManager;
+import bladesmp.itembanfolia.managers.EnderPearlManager;
 import bladesmp.itembanfolia.managers.RegionManager;
 import bladesmp.itembanfolia.utils.MessageUtils;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -17,6 +18,7 @@ public class ItemBanPlugin extends JavaPlugin {
     private RegionManager regionManager;
     private bladesmp.itembanfolia.managers.WorldBanManager worldBanManager;
     private CombatManager combatManager;
+    private EnderPearlManager enderPearlManager; // NEW
     private MessageUtils messageUtils;
 
     @Override
@@ -32,6 +34,7 @@ public class ItemBanPlugin extends JavaPlugin {
         this.worldBanManager = new bladesmp.itembanfolia.managers.WorldBanManager(this);
         this.messageUtils = new MessageUtils(this);
         this.combatManager = new CombatManager(this);
+        this.enderPearlManager = new EnderPearlManager(this); // NEW
 
         // Load regions after all managers are initialized
         regionManager.loadRegions();
@@ -44,10 +47,12 @@ public class ItemBanPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CombatListener(this), this);
         getServer().getPluginManager().registerEvents(new InteractListener(this), this);
         getServer().getPluginManager().registerEvents(new bladesmp.itembanfolia.listeners.BlockListener(this), this);
-        getServer().getPluginManager().registerEvents(new RegionMoveListener(this), this); // NEW: Region move listener
+        getServer().getPluginManager().registerEvents(new RegionMoveListener(this), this);
 
         getLogger().info("ItemBan Plugin enabled successfully!");
         getLogger().info("Folia support: " + isFolia());
+        getLogger().info("MiniMessage support: " + configManager.useMinimessage());
+        getLogger().info("Ender Pearl cooldown: " + (configManager.isEnderPearlCooldownEnabled() ? configManager.getEnderPearlCooldown() + "s" : "disabled"));
     }
 
     @Override
@@ -57,6 +62,9 @@ public class ItemBanPlugin extends JavaPlugin {
         }
         if (combatManager != null) {
             combatManager.cleanup();
+        }
+        if (enderPearlManager != null) { // NEW
+            enderPearlManager.cleanup();
         }
         getLogger().info("ItemBan Plugin disabled!");
     }
@@ -75,6 +83,10 @@ public class ItemBanPlugin extends JavaPlugin {
 
     public CombatManager getCombatManager() {
         return combatManager;
+    }
+
+    public EnderPearlManager getEnderPearlManager() { // NEW
+        return enderPearlManager;
     }
 
     public MessageUtils getMessageUtils() {

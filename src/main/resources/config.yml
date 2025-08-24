@@ -1,59 +1,48 @@
 # ItemBan Plugin Configuration
-# Supported color formats:
-# - Legacy codes: &c, &l, &n, etc.
-# - Hex colors: &#FF0000 (red), &#00FF00 (green), etc.
-# - MiniMessage: <red>, <bold>, <#FF0000>, etc.
+# Uses only MiniMessage format
+# See: https://docs.advntr.dev/minimessage/format.html
 
 # Combat System Configuration
 combat:
-  # Enable/disable combat system
   enabled: true
-
-  # Combat duration in seconds
   duration: 15
-
-  # Kill player when they logout during combat (only if not in locked region)
   kill-on-logout: true
-
-  # Show combat timer in actionbar
   show-actionbar: true
-
-  # Actionbar update interval in ticks (20 ticks = 1 second)
   actionbar-update-interval: 10
-
-  # Items banned during combat
   banned-items:
     - "ENDER_PEARL"
     - "CHORUS_FRUIT"
     - "GOLDEN_APPLE"
     - "ENCHANTED_GOLDEN_APPLE"
     - "TOTEM_OF_UNDYING"
-    # Add swords to test sword blocking
     - "DIAMOND_SWORD"
     - "NETHERITE_SWORD"
-
-  # Region locking during combat
+    - "ELYTRA"
   region-lock:
-    # Enable/disable region locking during combat
     enabled: false
-    # Regions where players cannot leave during combat
     regions:
       - "spawn"
       - "arena"
       - "pvp"
 
+# Ender Pearl Cooldown System
+ender-pearl:
+  enabled: true
+  cooldown: 5
+  show-cooldown-message: true
+  global-cooldown: true
+
 # World-specific bans
 world-bans:
-  # Enable/disable world-specific item bans
   enabled: true
-
-  # Configure banned items per world
   worlds:
     spawn:
       - "ENDER_CRYSTAL"
       - "TNT"
       - "RESPAWN_ANCHOR"
       - "WITHER_SKELETON_SKULL"
+      - "DIAMOND_SWORD"
+      - "ELYTRA"
     pvp:
       - "TOTEM_OF_UNDYING"
       - "GOLDEN_APPLE"
@@ -64,49 +53,35 @@ world-bans:
 
 # Message Configuration
 messages:
-  # Enable/disable all plugin messages (except actionbar)
   enabled: true
-
-  # Enable/disable actionbar messages (independent of general messages)
   actionbar-enabled: true
 
-  # Use MiniMessage format (modern) or legacy format
-  use-minimessage: true
+  # Prefix with custom hex color
+  prefix: "<color:#ff00b1><bold>ITEMBAN</bold></color> <gray>»</gray>"
 
-  # Message prefix (Examples of different formats)
-  # Legacy: "&c[ItemBan]"
-  # Hex: "&#FF0000[ItemBan]"
-  # MiniMessage: "<red>[ItemBan]</red>"
-  prefix: "<#ff00b1><b>ITEMBAN <reset><gray>»<reset>"
-
-  # Message texts
-  item-banned-region: "&c&lDieses Item ist in dieser Region nicht erlaubt!"
-  item-banned-combat: "&c&lDieses Item ist während des Kampfes nicht erlaubt!"
-  item-banned-world: "&c&lDieses Item ist in dieser Welt nicht erlaubt!"
-  wand-received: "&aRegions-Wand erhalten! Linksklick und Rechtsklick zum Markieren."
-  region-created: "&aRegion '&f{name}&a' erfolgreich erstellt!"
-  region-deleted: "&aRegion '&f{name}&a' wurde gelöscht!"
-  pos1-set: "&aPosition 1 gesetzt: &f{x}, {y}, {z}"
-  pos2-set: "&aPosition 2 gesetzt: &f{x}, {y}, {z}"
-  no-permission: "&cDu hast keine Berechtigung für diesen Befehl!"
-  config-reloaded: "&aKonfiguration erfolgreich neu geladen!"
-  in-combat: "&cDu bist jetzt im Kampf für {duration} Sekunden!"
-  combat-end: "&aDu bist nicht mehr im Kampf!"
-  combat-actionbar: "<#fc0000><u>ᴄᴏᴍʙᴀᴛ: &f{time}s"
-  combat-logout-death: "&c{player} ist während des Kampfes offline gegangen und gestorben!"
-  combat-region-leave-denied: "&cDu kannst diese Region nicht während des Kampfes verlassen!"
+  # All messages in MiniMessage format
+  item-banned-region: "<red><bold>Dieses Item ist in dieser Region nicht erlaubt!"
+  item-banned-combat: "<red><bold>Dieses Item ist während des Kampfes nicht erlaubt!"
+  item-banned-world: "<red><bold>Dieses Item ist in dieser Welt nicht erlaubt!"
+  wand-received: "<green>Regions-Wand erhalten! Linksklick und Rechtsklick zum Markieren."
+  region-created: "<green>Region '<white>{name}</white>' erfolgreich erstellt!"
+  region-deleted: "<green>Region '<white>{name}</white>' wurde gelöscht!"
+  pos1-set: "<green>Position 1 gesetzt: <white>{x}, {y}, {z}</white>"
+  pos2-set: "<green>Position 2 gesetzt: <white>{x}, {y}, {z}</white>"
+  no-permission: "<red>Du hast keine Berechtigung für diesen Befehl!"
+  config-reloaded: "<green>Konfiguration erfolgreich neu geladen!"
+  in-combat: "<red>Du bist jetzt im Kampf für {duration} Sekunden!"
+  combat-end: "<green>Du bist nicht mehr im Kampf!"
+  combat-actionbar: "<color:#fc0000><underlined>COMBAT:</underlined> <white>{time}s</white>"
+  combat-logout-death: "<red>{player} ist während des Kampfes offline gegangen und gestorben!"
+  combat-region-leave-denied: "<red>Du kannst diese Region nicht während des Kampfes verlassen!"
+  ender-pearl-cooldown: "<red><bold>Ender Pearl ist noch für <yellow>{time}</yellow> Sekunden im Cooldown!"
 
 # Wand Configuration
 wand:
-  # Material for the region selection wand
   material: "DIAMOND_AXE"
-
-  # Display name of the wand
-  name: "&6&lRegions-Wand"
-
-  # Lore of the wand (credit line is added automatically)
+  name: "<gold><bold>Regions-Wand</bold></gold>"
   lore:
-    - "&7Linksklick: Position 1 setzen"
-    - "&7Rechtsklick: Position 2 setzen"
-    - "&7Verwende &f/itemban create <name>&7 um eine Region zu erstellen"
-    - ""
+    - "<gray>Linksklick: Position 1 setzen</gray>"
+    - "<gray>Rechtsklick: Position 2 setzen</gray>"
+    - "<gray>Verwende <white>/itemban create <n></white> um eine Region zu erstellen</gray>"
