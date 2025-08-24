@@ -2,6 +2,8 @@ package bladesmp.itembanfolia.utils;
 
 import bladesmp.itembanfolia.ItemBanPlugin;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
@@ -21,18 +23,18 @@ public class WandUtils {
         ItemMeta meta = wand.getItemMeta();
 
         if (meta != null) {
-            // Set display name
+            // Set display name using legacy format (compatible)
             String name = plugin.getConfigManager().getWandName();
-            Component nameComponent = plugin.getMessageUtils().formatMessage(name);
-            meta.displayName(nameComponent);
+            String legacyName = ChatColor.translateAlternateColorCodes('&', name);
+            meta.setDisplayName(legacyName);
 
-            // Set lore
+            // Set lore using legacy format
             List<String> loreStrings = plugin.getConfigManager().getWandLore();
-            List<Component> lore = new ArrayList<>();
+            List<String> legacyLore = new ArrayList<>();
             for (String loreString : loreStrings) {
-                lore.add(plugin.getMessageUtils().formatMessage(loreString));
+                legacyLore.add(ChatColor.translateAlternateColorCodes('&', loreString));
             }
-            meta.lore(lore);
+            meta.setLore(legacyLore);
 
             // Set persistent data to identify as wand
             NamespacedKey key = new NamespacedKey(plugin, WAND_KEY);

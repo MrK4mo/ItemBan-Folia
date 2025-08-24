@@ -22,18 +22,20 @@ public class ItemBanPlugin extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
-        // Initialize managers
+        // Initialize config manager first and load config
         this.configManager = new ConfigManager(this);
-        this.regionManager = new RegionManager(this);
-        this.combatManager = new CombatManager(this);
-        this.messageUtils = new MessageUtils(this);
-
-        // Load configuration
         configManager.loadConfig();
+
+        // Initialize other managers after config is loaded
+        this.regionManager = new RegionManager(this);
+        this.messageUtils = new MessageUtils(this);
+        this.combatManager = new CombatManager(this);
+
+        // Load regions after all managers are initialized
         regionManager.loadRegions();
 
-        // Register commands
-        getCommand("itemban").setExecutor(new ItemBanCommand(this));
+        // Register commands programmatically (Paper plugin requirement)
+        getServer().getCommandMap().register("itemban", new bladesmp.itembanfolia.commands.ItemBanCommandWrapper(this));
 
         // Register listeners
         getServer().getPluginManager().registerEvents(new RegionListener(this), this);

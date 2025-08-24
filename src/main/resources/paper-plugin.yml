@@ -18,8 +18,5 @@ permissions:
     description: Use ItemBan commands
     default: op
 
-commands:
-  itemban:
-    description: ItemBan main command
-    usage: /itemban <wand|reload|help>
-    permission: itemban.command
+# Commands are registered programmatically in Paper plugins
+# No YAML-based command declarations allowed

@@ -18,6 +18,7 @@ public class CombatManager {
         this.combatPlayers = new ConcurrentHashMap<>();
         this.bannedItemsInCombat = new HashSet<>();
 
+        // Load banned items after construction
         loadBannedItems();
         startCleanupTask();
     }
@@ -25,38 +26,59 @@ public class CombatManager {
     private void loadBannedItems() {
         bannedItemsInCombat.clear();
 
+        // Add null check for config manager
+        if (plugin.getConfigManager() == null) {
+            plugin.getLogger().warning("ConfigManager not initialized yet, using default combat banned items");
+            // Add default items
+            bannedItemsInCombat.add(Material.ENDER_PEARL);
+            bannedItemsInCombat.add(Material.CHORUS_FRUIT);
+            bannedItemsInCombat.add(Material.GOLDEN_APPLE);
+            return;
+        }
+
         List<String> itemStrings = plugin.getConfigManager().getCombatBannedItems();
+        if (itemStrings == null || itemStrings.isEmpty()) {
+            plugin.getLogger().info("No combat banned items configured, using defaults");
+            bannedItemsInCombat.add(Material.ENDER_PEARL);
+            bannedItemsInCombat.add(Material.CHORUS_FRUIT);
+            bannedItemsInCombat.add(Material.GOLDEN_APPLE);
+            return;
+        }
+
         for (String itemString : itemStrings) {
             try {
-                Material material = Material.valueOf(itemString);
+                Material material = Material.valueOf(itemString.toUpperCase());
                 bannedItemsInCombat.add(material);
             } catch (IllegalArgumentException e) {
                 plugin.getLogger().warning("Invalid combat banned item: " + itemString);
             }
         }
+
+        plugin.getLogger().info("Loaded " + bannedItemsInCombat.size() + " combat banned items");
     }
 
     public void putPlayerInCombat(Player player) {
-        if (!plugin.getConfigManager().isCombatEnabled()) {
+        if (plugin.getConfigManager() != null && !plugin.getConfigManager().isCombatEnabled()) {
             return;
         }
 
         UUID playerId = player.getUniqueId();
-        long combatEndTime = System.currentTimeMillis() + (plugin.getConfigManager().getCombatDuration() * 1000L);
+        int duration = plugin.getConfigManager() != null ? plugin.getConfigManager().getCombatDuration() : 15;
+        long combatEndTime = System.currentTimeMillis() + (duration * 1000L);
 
         boolean wasInCombat = combatPlayers.containsKey(playerId);
         combatPlayers.put(playerId, combatEndTime);
 
-        if (!wasInCombat) {
+        if (!wasInCombat && plugin.getMessageUtils() != null) {
             plugin.getMessageUtils().sendMessage(player, "in-combat",
-                    "duration", String.valueOf(plugin.getConfigManager().getCombatDuration())
+                    "duration", String.valueOf(duration)
             );
         }
     }
 
     public void removePlayerFromCombat(Player player) {
         UUID playerId = player.getUniqueId();
-        if (combatPlayers.remove(playerId) != null) {
+        if (combatPlayers.remove(playerId) != null && plugin.getMessageUtils() != null) {
             plugin.getMessageUtils().sendMessage(player, "combat-end");
         }
     }
@@ -71,7 +93,9 @@ public class CombatManager {
 
         if (System.currentTimeMillis() >= combatEndTime) {
             combatPlayers.remove(playerId);
-            plugin.getMessageUtils().sendMessage(player, "combat-end");
+            if (plugin.getMessageUtils() != null) {
+                plugin.getMessageUtils().sendMessage(player, "combat-end");
+            }
             return false;
         }
 
@@ -101,21 +125,27 @@ public class CombatManager {
     public void addBannedItem(Material material) {
         bannedItemsInCombat.add(material);
         // Update config
-        List<String> items = plugin.getConfigManager().getCombatBannedItems();
-        if (!items.contains(material.name())) {
-            items.add(material.name());
-            plugin.getConfigManager().getConfig().set("combat.banned-items", items);
-            plugin.getConfigManager().saveConfig();
+        if (plugin.getConfigManager() != null) {
+            List<String> items = plugin.getConfigManager().getCombatBannedItems();
+            if (items != null && !items.contains(material.name())) {
+                items.add(material.name());
+                plugin.getConfigManager().getConfig().set("combat.banned-items", items);
+                plugin.getConfigManager().saveConfig();
+            }
         }
     }
 
     public void removeBannedItem(Material material) {
         bannedItemsInCombat.remove(material);
         // Update config
-        List<String> items = plugin.getConfigManager().getCombatBannedItems();
-        items.remove(material.name());
-        plugin.getConfigManager().getConfig().set("combat.banned-items", items);
-        plugin.getConfigManager().saveConfig();
+        if (plugin.getConfigManager() != null) {
+            List<String> items = plugin.getConfigManager().getCombatBannedItems();
+            if (items != null) {
+                items.remove(material.name());
+                plugin.getConfigManager().getConfig().set("combat.banned-items", items);
+                plugin.getConfigManager().saveConfig();
+            }
+        }
     }
 
     public Set<Material> getBannedItems() {
@@ -134,7 +164,7 @@ public class CombatManager {
                     iterator.remove();
                     // Notify player if they're online
                     Player player = plugin.getServer().getPlayer(entry.getKey());
-                    if (player != null && player.isOnline()) {
+                    if (player != null && player.isOnline() && plugin.getMessageUtils() != null) {
                         // Schedule message on player's region for Folia compatibility
                         if (plugin.isFolia()) {
                             plugin.scheduleEntityTask(player, () -> {
