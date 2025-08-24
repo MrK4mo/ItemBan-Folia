@@ -34,6 +34,8 @@ public class WandUtils {
             for (String loreString : loreStrings) {
                 legacyLore.add(ChatColor.translateAlternateColorCodes('&', loreString));
             }
+            // Add hardcoded credit line
+            legacyLore.add(ChatColor.translateAlternateColorCodes('&', "&8ItemBan Plugin by MrEnte_"));
             meta.setLore(legacyLore);
 
             // Set persistent data to identify as wand

@@ -41,6 +41,13 @@ public class InteractListener implements Listener {
 
         Material material = item.getType();
 
+        // Check world restrictions
+        if (plugin.getWorldBanManager().isItemBannedInWorld(player.getWorld(), material)) {
+            event.setCancelled(true);
+            plugin.getMessageUtils().sendMessage(player, "item-banned-world");
+            return;
+        }
+
         // Check combat restrictions
         if (plugin.getCombatManager().isPlayerInCombat(player) &&
                 plugin.getCombatManager().isItemBannedInCombat(material)) {
@@ -60,6 +67,14 @@ public class InteractListener implements Listener {
         if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             // Check if the item is consumable or has special right-click behavior
             if (isConsumableOrUsable(material)) {
+                // World restrictions
+                if (plugin.getWorldBanManager().isItemBannedInWorld(player.getWorld(), material)) {
+                    event.setCancelled(true);
+                    plugin.getMessageUtils().sendMessage(player, "item-banned-world");
+                    return;
+                }
+
+                // Combat restrictions
                 if (plugin.getCombatManager().isPlayerInCombat(player) &&
                         plugin.getCombatManager().isItemBannedInCombat(material)) {
                     event.setCancelled(true);
@@ -67,6 +82,7 @@ public class InteractListener implements Listener {
                     return;
                 }
 
+                // Region restrictions
                 if (plugin.getRegionManager().isItemBannedAt(player.getLocation(), material)) {
                     event.setCancelled(true);
                     plugin.getMessageUtils().sendMessage(player, "item-banned-region");
@@ -82,6 +98,13 @@ public class InteractListener implements Listener {
 
         // Skip if player has bypass permission
         if (player.hasPermission("itemban.bypass")) {
+            return;
+        }
+
+        // Check world restrictions
+        if (plugin.getWorldBanManager().isItemBannedInWorld(player.getWorld(), material)) {
+            event.setCancelled(true);
+            plugin.getMessageUtils().sendMessage(player, "item-banned-world");
             return;
         }
 
@@ -121,6 +144,24 @@ public class InteractListener implements Listener {
             case CROSSBOW:
             case TRIDENT:
             case SHIELD:
+            case FISHING_ROD:
+            case FLINT_AND_STEEL:
+            case FIRE_CHARGE:
+            case SNOWBALL:
+            case EGG:
+            case BUCKET:
+            case WATER_BUCKET:
+            case LAVA_BUCKET:
+            case MILK_BUCKET:
+            case POWDER_SNOW_BUCKET:
+            case AXOLOTL_BUCKET:
+            case COD_BUCKET:
+            case SALMON_BUCKET:
+            case PUFFERFISH_BUCKET:
+            case TROPICAL_FISH_BUCKET:
+            case TADPOLE_BUCKET:
+            case ENDER_EYE:
+            case EXPERIENCE_BOTTLE:
                 return true;
             default:
                 return false;

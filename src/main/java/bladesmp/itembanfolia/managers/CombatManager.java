@@ -12,15 +12,18 @@ public class CombatManager {
     private final ItemBanPlugin plugin;
     private final Map<UUID, Long> combatPlayers;
     private final Set<Material> bannedItemsInCombat;
+    private final Set<UUID> playersWithActionbar;
 
     public CombatManager(ItemBanPlugin plugin) {
         this.plugin = plugin;
         this.combatPlayers = new ConcurrentHashMap<>();
         this.bannedItemsInCombat = new HashSet<>();
+        this.playersWithActionbar = ConcurrentHashMap.newKeySet();
 
         // Load banned items after construction
         loadBannedItems();
         startCleanupTask();
+        startActionbarTask();
     }
 
     private void loadBannedItems() {
@@ -69,6 +72,11 @@ public class CombatManager {
         boolean wasInCombat = combatPlayers.containsKey(playerId);
         combatPlayers.put(playerId, combatEndTime);
 
+        // Add to actionbar tracking
+        if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar()) {
+            playersWithActionbar.add(playerId);
+        }
+
         if (!wasInCombat && plugin.getMessageUtils() != null) {
             plugin.getMessageUtils().sendMessage(player, "in-combat",
                     "duration", String.valueOf(duration)
@@ -78,8 +86,14 @@ public class CombatManager {
 
     public void removePlayerFromCombat(Player player) {
         UUID playerId = player.getUniqueId();
+        playersWithActionbar.remove(playerId);
+
         if (combatPlayers.remove(playerId) != null && plugin.getMessageUtils() != null) {
             plugin.getMessageUtils().sendMessage(player, "combat-end");
+            // Clear actionbar
+            if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar()) {
+                player.sendActionBar("");
+            }
         }
     }
 
@@ -93,13 +107,96 @@ public class CombatManager {
 
         if (System.currentTimeMillis() >= combatEndTime) {
             combatPlayers.remove(playerId);
+            playersWithActionbar.remove(playerId);
             if (plugin.getMessageUtils() != null) {
                 plugin.getMessageUtils().sendMessage(player, "combat-end");
+                // Clear actionbar
+                if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar()) {
+                    player.sendActionBar("");
+                }
             }
             return false;
         }
 
         return true;
+    }
+
+    public void handlePlayerLogout(Player player) {
+        UUID playerId = player.getUniqueId();
+
+        if (combatPlayers.containsKey(playerId)) {
+            if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldKillOnLogout()) {
+                // Kill player for combat logging
+                if (plugin.getMessageUtils() != null) {
+                    plugin.getMessageUtils().broadcastMessage("combat-logout-death",
+                            "player", player.getName());
+                }
+
+                // Drop inventory and kill player
+                player.getWorld().dropItemNaturally(player.getLocation(), player.getInventory().getContents());
+                player.getInventory().clear();
+                player.setHealth(0.0);
+            }
+
+            // Remove from combat
+            combatPlayers.remove(playerId);
+            playersWithActionbar.remove(playerId);
+        }
+    }
+
+    private void startActionbarTask() {
+        if (plugin.getConfigManager() == null || !plugin.getConfigManager().shouldShowActionbar()) {
+            return;
+        }
+
+        int interval = plugin.getConfigManager().getActionbarUpdateInterval();
+
+        Runnable actionbarTask = () -> {
+            long currentTime = System.currentTimeMillis();
+
+            for (UUID playerId : new HashSet<>(playersWithActionbar)) {
+                Player player = plugin.getServer().getPlayer(playerId);
+                if (player == null || !player.isOnline()) {
+                    playersWithActionbar.remove(playerId);
+                    continue;
+                }
+
+                Long combatEndTime = combatPlayers.get(playerId);
+                if (combatEndTime == null) {
+                    playersWithActionbar.remove(playerId);
+                    player.sendActionBar("");
+                    continue;
+                }
+
+                long remaining = (combatEndTime - currentTime) / 1000;
+                if (remaining <= 0) {
+                    playersWithActionbar.remove(playerId);
+                    player.sendActionBar("");
+                    continue;
+                }
+
+                String actionbarMessage = plugin.getConfigManager().getMessage("combat-actionbar")
+                        .replace("{time}", String.valueOf(remaining));
+                String formattedMessage = plugin.getMessageUtils().formatMessage(actionbarMessage);
+                player.sendActionBar(formattedMessage);
+            }
+        };
+
+        if (plugin.isFolia()) {
+            plugin.getServer().getGlobalRegionScheduler().runAtFixedRate(
+                    plugin,
+                    scheduledTask -> actionbarTask.run(),
+                    interval,
+                    interval
+            );
+        } else {
+            plugin.getServer().getScheduler().runTaskTimerAsynchronously(
+                    plugin,
+                    actionbarTask,
+                    interval,
+                    interval
+            );
+        }
     }
 
     public boolean isItemBannedInCombat(Material material) {
@@ -162,6 +259,8 @@ public class CombatManager {
                 Map.Entry<UUID, Long> entry = iterator.next();
                 if (currentTime >= entry.getValue()) {
                     iterator.remove();
+                    playersWithActionbar.remove(entry.getKey());
+
                     // Notify player if they're online
                     Player player = plugin.getServer().getPlayer(entry.getKey());
                     if (player != null && player.isOnline() && plugin.getMessageUtils() != null) {
@@ -169,9 +268,15 @@ public class CombatManager {
                         if (plugin.isFolia()) {
                             plugin.scheduleEntityTask(player, () -> {
                                 plugin.getMessageUtils().sendMessage(player, "combat-end");
+                                if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar()) {
+                                    player.sendActionBar("");
+                                }
                             });
                         } else {
                             plugin.getMessageUtils().sendMessage(player, "combat-end");
+                            if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowActionbar()) {
+                                player.sendActionBar("");
+                            }
                         }
                     }
                 }
@@ -197,6 +302,7 @@ public class CombatManager {
 
     public void cleanup() {
         combatPlayers.clear();
+        playersWithActionbar.clear();
     }
 
     public void reloadConfig() {

@@ -2,15 +2,13 @@ package bladesmp.itembanfolia.config;
 
 import bladesmp.itembanfolia.ItemBanPlugin;
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ConfigManager {
 
@@ -31,6 +29,13 @@ public class ConfigManager {
         defaults.put("combat.enabled", true);
         defaults.put("combat.duration", 15);
         defaults.put("combat.banned-items", Arrays.asList("ENDER_PEARL", "CHORUS_FRUIT", "GOLDEN_APPLE"));
+        defaults.put("combat.kill-on-logout", true);
+        defaults.put("combat.show-actionbar", true);
+        defaults.put("combat.actionbar-update-interval", 10); // ticks
+
+        // World bans
+        defaults.put("world-bans.enabled", true);
+        defaults.put("world-bans.worlds.spawn", Arrays.asList("ENDER_CRYSTAL", "TNT", "RESPAWN_ANCHOR"));
 
         // Messages
         defaults.put("messages.enabled", true);
@@ -40,6 +45,7 @@ public class ConfigManager {
         // Message texts
         defaults.put("messages.item-banned-region", "&c&lDieses Item ist in dieser Region nicht erlaubt!");
         defaults.put("messages.item-banned-combat", "&c&lDieses Item ist während des Kampfes nicht erlaubt!");
+        defaults.put("messages.item-banned-world", "&c&lDieses Item ist in dieser Welt nicht erlaubt!");
         defaults.put("messages.wand-received", "&aRegions-Wand erhalten! Linksklick und Rechtsklick zum Markieren.");
         defaults.put("messages.region-created", "&aRegion '&f{name}&a' erfolgreich erstellt!");
         defaults.put("messages.region-deleted", "&aRegion '&f{name}&a' wurde gelöscht!");
@@ -49,6 +55,8 @@ public class ConfigManager {
         defaults.put("messages.config-reloaded", "&aKonfiguration erfolgreich neu geladen!");
         defaults.put("messages.in-combat", "&cDu bist jetzt im Kampf für {duration} Sekunden!");
         defaults.put("messages.combat-end", "&aDu bist nicht mehr im Kampf!");
+        defaults.put("messages.combat-actionbar", "&cKampf: &f{time}s");
+        defaults.put("messages.combat-logout-death", "&c{player} ist während des Kampfes offline gegangen und gestorben!");
 
         // Wand settings
         defaults.put("wand.material", "DIAMOND_AXE");
@@ -101,7 +109,7 @@ public class ConfigManager {
         return config;
     }
 
-    // Convenience methods
+    // Combat settings
     public boolean isCombatEnabled() {
         return config.getBoolean("combat.enabled", true);
     }
@@ -114,6 +122,52 @@ public class ConfigManager {
         return config.getStringList("combat.banned-items");
     }
 
+    public boolean shouldKillOnLogout() {
+        return config.getBoolean("combat.kill-on-logout", true);
+    }
+
+    public boolean shouldShowActionbar() {
+        return config.getBoolean("combat.show-actionbar", true);
+    }
+
+    public int getActionbarUpdateInterval() {
+        return config.getInt("combat.actionbar-update-interval", 10);
+    }
+
+    // World bans
+    public boolean areWorldBansEnabled() {
+        return config.getBoolean("world-bans.enabled", true);
+    }
+
+    public List<String> getWorldBannedItems(String worldName) {
+        return config.getStringList("world-bans.worlds." + worldName.toLowerCase());
+    }
+
+    public Set<String> getWorldsWithBans() {
+        ConfigurationSection worldsSection = config.getConfigurationSection("world-bans.worlds");
+        if (worldsSection == null) {
+            return new HashSet<>();
+        }
+        return worldsSection.getKeys(false);
+    }
+
+    public void addWorldBannedItem(String worldName, Material material) {
+        List<String> items = getWorldBannedItems(worldName);
+        if (!items.contains(material.name())) {
+            items.add(material.name());
+            config.set("world-bans.worlds." + worldName.toLowerCase(), items);
+            saveConfig();
+        }
+    }
+
+    public void removeWorldBannedItem(String worldName, Material material) {
+        List<String> items = getWorldBannedItems(worldName);
+        items.remove(material.name());
+        config.set("world-bans.worlds." + worldName.toLowerCase(), items);
+        saveConfig();
+    }
+
+    // Messages
     public boolean areMessagesEnabled() {
         return config.getBoolean("messages.enabled", true);
     }
@@ -130,6 +184,7 @@ public class ConfigManager {
         return config.getString("messages." + key, "Message not found: " + key);
     }
 
+    // Wand settings
     public Material getWandMaterial() {
         try {
             return Material.valueOf(config.getString("wand.material", "DIAMOND_AXE"));

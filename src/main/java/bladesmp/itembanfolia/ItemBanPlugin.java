@@ -1,7 +1,5 @@
 package bladesmp.itembanfolia;
 
-import bladesmp.itembanfolia.commands.ItemBanCommand;
-import bladesmp.itembanfolia.config.ConfigManager;
 import bladesmp.itembanfolia.listeners.CombatListener;
 import bladesmp.itembanfolia.listeners.InteractListener;
 import bladesmp.itembanfolia.listeners.RegionListener;
@@ -15,6 +13,7 @@ public class ItemBanPlugin extends JavaPlugin {
     private static ItemBanPlugin instance;
     private ConfigManager configManager;
     private RegionManager regionManager;
+    private bladesmp.itembanfolia.managers.WorldBanManager worldBanManager;
     private CombatManager combatManager;
     private MessageUtils messageUtils;
 
@@ -28,6 +27,7 @@ public class ItemBanPlugin extends JavaPlugin {
 
         // Initialize other managers after config is loaded
         this.regionManager = new RegionManager(this);
+        this.worldBanManager = new bladesmp.itembanfolia.managers.WorldBanManager(this);
         this.messageUtils = new MessageUtils(this);
         this.combatManager = new CombatManager(this);
 
@@ -41,6 +41,7 @@ public class ItemBanPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new RegionListener(this), this);
         getServer().getPluginManager().registerEvents(new CombatListener(this), this);
         getServer().getPluginManager().registerEvents(new InteractListener(this), this);
+        getServer().getPluginManager().registerEvents(new bladesmp.itembanfolia.listeners.BlockListener(this), this);
 
         getLogger().info("ItemBan Plugin enabled successfully!");
         getLogger().info("Folia support: " + isFolia());
@@ -75,6 +76,10 @@ public class ItemBanPlugin extends JavaPlugin {
 
     public MessageUtils getMessageUtils() {
         return messageUtils;
+    }
+
+    public bladesmp.itembanfolia.managers.WorldBanManager getWorldBanManager() {
+        return worldBanManager;
     }
 
     public boolean isFolia() {

@@ -12,6 +12,15 @@ combat:
   # Combat duration in seconds
   duration: 15
 
+  # Kill player when they logout during combat
+  kill-on-logout: true
+
+  # Show combat timer in actionbar
+  show-actionbar: true
+
+  # Actionbar update interval in ticks (20 ticks = 1 second)
+  actionbar-update-interval: 10
+
   # Items banned during combat
   banned-items:
     - "ENDER_PEARL"
@@ -19,6 +28,26 @@ combat:
     - "GOLDEN_APPLE"
     - "ENCHANTED_GOLDEN_APPLE"
     - "TOTEM_OF_UNDYING"
+
+# World-specific bans
+world-bans:
+  # Enable/disable world-specific item bans
+  enabled: true
+
+  # Configure banned items per world
+  worlds:
+    spawn:
+      - "ENDER_CRYSTAL"
+      - "TNT"
+      - "RESPAWN_ANCHOR"
+      - "WITHER_SKELETON_SKULL"
+    pvp:
+      - "TOTEM_OF_UNDYING"
+      - "GOLDEN_APPLE"
+    creative:
+      - "BARRIER"
+      - "COMMAND_BLOCK"
+      - "STRUCTURE_BLOCK"
 
 # Message Configuration
 messages:
@@ -34,6 +63,7 @@ messages:
   # Message texts
   item-banned-region: "&c&lDieses Item ist in dieser Region nicht erlaubt!"
   item-banned-combat: "&c&lDieses Item ist während des Kampfes nicht erlaubt!"
+  item-banned-world: "&c&lDieses Item ist in dieser Welt nicht erlaubt!"
   wand-received: "&aRegions-Wand erhalten! Linksklick und Rechtsklick zum Markieren."
   region-created: "&aRegion '&f{name}&a' erfolgreich erstellt!"
   region-deleted: "&aRegion '&f{name}&a' wurde gelöscht!"
@@ -43,6 +73,8 @@ messages:
   config-reloaded: "&aKonfiguration erfolgreich neu geladen!"
   in-combat: "&cDu bist jetzt im Kampf für {duration} Sekunden!"
   combat-end: "&aDu bist nicht mehr im Kampf!"
+  combat-actionbar: "&cKampf: &f{time}s"
+  combat-logout-death: "&c{player} ist während des Kampfes offline gegangen und gestorben!"
 
 # Wand Configuration
 wand:
@@ -52,10 +84,9 @@ wand:
   # Display name of the wand
   name: "&6&lRegions-Wand"
 
-  # Lore of the wand
+  # Lore of the wand (credit line is added automatically)
   lore:
     - "&7Linksklick: Position 1 setzen"
     - "&7Rechtsklick: Position 2 setzen"
     - "&7Verwende &f/itemban create <name>&7 um eine Region zu erstellen"
     - ""
-    - "&8ItemBan Plugin by YourName"
