@@ -9,8 +9,6 @@ Ein Minecraft Plugin für Bukkit/Paper/Folia Server, das es ermöglicht, bestimm
 - ✅ **Folia Support**: Vollständig kompatibel mit Folia Servern
 - ✅ **Konfigurierbare Nachrichten**: Alle Nachrichten können angepasst werden
 - ✅ **MiniMessage Support**: Moderne Textformatierung mit MiniMessage
-- ✅ **Hex-Color Support**: Unterstützung für Hex-Farben (#FF0000)
-- ✅ **Legacy Color Codes**: Traditionelle Minecraft Farbcodes (&c, &l, etc.)
 
 ## Installation
 
